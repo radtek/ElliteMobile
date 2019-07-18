@@ -3,7 +3,7 @@ program Blu;
 uses
   System.StartUpCopy,
   FMX.Forms,
-  u_main in 'u_main.pas' {FrmRegister},
+  u_register in 'u_register.pas' {FrmRegister},
   u_database in 'u_database.pas' {DM: TDataModule};
 
 {$R *.res}
