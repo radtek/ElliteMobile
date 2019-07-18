@@ -10,7 +10,9 @@ object DM: TDM
   end
   object request: TRESTRequest
     Client = client
+    Method = rmPOST
     Params = <>
+    Resource = 'register/'
     Response = response
     SynchronizedEvents = False
     Left = 96
