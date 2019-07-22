@@ -1,0 +1,19 @@
+object FrmMain: TFrmMain
+  Left = 0
+  Top = 0
+  Caption = 'Janela Principal'
+  ClientHeight = 480
+  ClientWidth = 438
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  OnClose = FormClose
+  OnPaint = FormPaint
+  DesignerMasterStyle = 0
+  object LblNome: TLabel
+    Position.X = 80.000000000000000000
+    Position.Y = 112.000000000000000000
+    Text = 'LblNome'
+    TabOrder = 0
+  end
+end

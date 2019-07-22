@@ -7,7 +7,8 @@ uses
   System.Variants, System.IOUtils,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, System.JSON,
   FMX.Controls.Presentation, FMX.StdCtrls, FMX.Edit, FMX.Objects, u_database,
-  u_login;
+  u_login, FMX.Layouts, IdBaseComponent, IdComponent, IdTCPConnection,
+  IdTCPClient, IdHTTP;
 
 type
   TFrmRegister = class(TForm)
@@ -17,14 +18,21 @@ type
     lbl_senha: TLabel;
     txt_password: TEdit;
     img_logo: TImage;
+    LayoutMain: TLayout;
+    LayoutHeader: TLayout;
+    LayoutBody: TLayout;
+    LayoutForm: TLayout;
+    IdHTTP1: TIdHTTP;
     procedure btn_registerClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormPaint(Sender: TObject; Canvas: TCanvas; const ARect: TRectF);
     procedure txt_cpfExit(Sender: TObject);
   private
-    FCPF, FPassword, FCompany, FKey, FHost, FPath, FIMEI, FGUID: String;
+    FCPF, FPassword, FCompany, FKey, FHost, FPath, FIMEI, FGUID,
+      RootPath: String;
     FValidDate: TDate;
     FDataJson: TJSONObject;
+    IsRegistered: Boolean;
     property Cpf: String read FCPF write FCPF;
     property Password: String read FPassword write FPassword;
     property Path: String read FPath write FPath;
@@ -32,7 +40,7 @@ type
     property IMEI: String read FIMEI write FIMEI;
     property GUID: String read FGUID write FGUID;
     procedure WriteFile;
-    function SendData(JSON: TJSONObject): boolean;
+    function SendData(JSON: TJSONObject): Boolean;
     procedure CreateJson;
     procedure ReadFile;
     procedure GetDeviceImei;
@@ -70,6 +78,7 @@ uses
   Androidapi.JNI.JavaTypes, Androidapi.JNI.Os, Androidapi.JNI.App;
 {$ENDIF}
 {$R *.fmx}
+{$R *.LgXhdpiPh.fmx ANDROID}
 {$IFDEF ANDROID}
 
 procedure TFrmRegister.GetDeviceImei;
@@ -148,21 +157,26 @@ begin
   Self.DataJson := TJSONObject.Create();
 {$IFDEF MSWINDOWS}
   Path := 'ellite.key';
+  RootPath := '';
 {$ELSE}
   Path := System.IOUtils.TPath.Combine(System.IOUtils.TPath.GetHomePath,
     'ellite.key');
+  RootPath := System.IOUtils.TPath.GetHomePath;
 {$ENDIF}
   Self.GetDeviceImei;
   Self.GetUuid;
+  IsRegistered := False;
+  if FileExists(Path) then
+    ReadFile;
 end;
 
 procedure TFrmRegister.FormPaint(Sender: TObject; Canvas: TCanvas;
   const ARect: TRectF);
 begin
-  if FileExists(Path) then
+  if FileExists(Path) and IsRegistered then
   begin
-    FrmLogin.GUID := GUID;
-    FrmLogin.IMEI := IMEI;
+    FrmLogin.img_logo.Bitmap.LoadFromFile(System.IOUtils.TPath.Combine(RootPath,
+      'logo.png'));
     FrmLogin.Show;
     FrmRegister.Hide;
   end;
@@ -178,14 +192,14 @@ begin
   JSON := TJSONObject.Create;
   JSON.AddPair(TJSONPair.Create('cpf', Self.Cpf));
   JSON.AddPair(TJSONPair.Create('senha', Self.Password));
+  JSON.AddPair(TJSONPair.Create('machine', Self.IMEI));
   DM.request.ClearBody;
   DM.request.Params.Clear;
   if Self.SendData(JSON) then
   begin
     Self.CreateJson;
     Self.WriteFile;
-    
-    
+
   end;
 end;
 
@@ -199,13 +213,16 @@ begin
     Writeln(F, Self.DataJson.ToString);
   finally
     CloseFile(F);
+    IsRegistered := True;
   end;
 
 end;
 
-function TFrmRegister.SendData(JSON: TJSONObject): boolean;
+function TFrmRegister.SendData(JSON: TJSONObject): Boolean;
 var
   json_object: TJSONObject;
+  data_valida, logo_path: string;
+  logo: TFileStream;
 begin
   DM.request.AddBody(JSON);
   DM.request.Execute;
@@ -215,9 +232,20 @@ begin
     Self.Company := json_object.GetValue('company').Value;
     Self.Host := json_object.GetValue('server_ip').Value;
     Self.Key := json_object.GetValue('key').Value;
-    Self.ValidDate := StrToDate(json_object.GetValue('valid_date').Value);
-    Result := True;
+    data_valida := json_object.GetValue('valid_date').Value;
+    Self.ValidDate := StrToDate(data_valida);
+    logo_path := System.IOUtils.TPath.Combine(RootPath, 'logo.png');
+    logo := TFileStream.Create(logo_path, fmCreate);
+    try
+      IdHTTP1.get('https://ellitedev.herokuapp.com/' +
+        json_object.GetValue('company_logo').Value, logo);
+      logo.Free;
+      FrmLogin.img_logo.Bitmap.LoadFromFile(logo_path);
+    finally
+      Result := True;
+    end;
   end
+
   else
   begin
     ShowMessage('CPF/CNPJ e/ou senha inválidos !');
@@ -226,8 +254,20 @@ begin
 end;
 
 procedure TFrmRegister.txt_cpfExit(Sender: TObject);
+const
+  InvalidChars = [',', '.', '/', '!', '@', '#', '$', '%', '^', '&', '*', '''',
+    '"', ';', '_', '(', ')', ':', '|', '[', ']', '-', '+'];
+var
+  i: Integer;
+  Cpf: string;
 begin
-  txt_cpf.Text := Self.FormatarCPFCNPJ(txt_cpf.Text)
+  Cpf := txt_cpf.Text;
+  for i := 1 to Length(Cpf) do
+    if (Cpf[i] in InvalidChars) then
+    begin
+      Cpf := StringReplace(Cpf, Cpf[i], '', [rfReplaceAll, rfIgnoreCase]);
+    end;
+  txt_cpf.Text := Self.FormatarCPFCNPJ(Cpf)
 end;
 
 function TFrmRegister.FormatarCPFCNPJ(const Doc: String): String;
@@ -246,7 +286,7 @@ end;
 
 procedure TFrmRegister.CreateJson;
 begin
-  Self.DataJson.AddPair(TJSONPair.Create('host', Self.Host));
+  Self.DataJson.AddPair(TJSONPair.Create('server_ip', Self.Host));
   Self.DataJson.AddPair(TJSONPair.Create('key', Self.Key));
   Self.DataJson.AddPair(TJSONPair.Create('company', Self.Company));
   Self.DataJson.AddPair(TJSONPair.Create('valid_date',
@@ -271,9 +311,11 @@ begin
       Self.ValidDate := StrToDate(file_value.GetValue('valid_date').Value);
       Self.Host := file_value.GetValue('server_ip').Value;
       Self.Key := file_value.GetValue('key').Value;
+      DM.client.BaseURL := 'http://' + Self.Host + ':8080/api/v1/';
     end;
   finally
     CloseFile(F);
+    IsRegistered := True;
   end;
 
 end;

@@ -16,6 +16,9 @@ type
     response: TRESTResponse;
     dataadapter: TRESTResponseDataSetAdapter;
     memtable: TFDMemTable;
+    RESTClient1: TRESTClient;
+    RESTRequest1: TRESTRequest;
+    RESTResponse1: TRESTResponse;
   private
     { Private declarations }
   public
