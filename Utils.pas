@@ -21,11 +21,11 @@ uses
   uTPLb_CryptographicLibrary,
   uTPLb_Codec, System.SysUtils,
   uTPLb_Constants, System.Threading,
-  System.Variants, System.Classes;
+  System.Variants, System.Classes, Env;
 
 constructor TCrypt.Create;
 begin
-  Hash := 'GENERATE_YOUR_PASSWORD_HASH';
+  Hash := HashPass;
 end;
 
 function TCrypt.EncryptStr(str: string): string;
