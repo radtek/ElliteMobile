@@ -110,7 +110,6 @@ begin
     file_string := TFile.ReadAllText('data.json');
     person := TJSONObject.Create();
     person := TJSONObject.ParseJSONValue(file_string) as TJSONObject;
-    person.JsonToObject();
     dm.request.AddBody(person.ToString);
     dm.request.Execute;
     ShowMessage(dm.response.JSONText);

@@ -6,7 +6,8 @@ uses
   u_database in 'u_database.pas' {DM: TDataModule},
   u_register in 'u_register.pas' {FrmRegister},
   u_login in 'u_login.pas' {FrmLogin},
-  u_main in 'u_main.pas' {FrmMain};
+  u_main in 'u_main.pas' {FrmMain},
+  Utils in 'Utils.pas';
 
 {$R *.res}
 

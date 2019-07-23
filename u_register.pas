@@ -4,7 +4,7 @@ interface
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes,
-  System.Variants, System.IOUtils,
+  System.Variants, System.IOUtils, Utils,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, System.JSON,
   FMX.Controls.Presentation, FMX.StdCtrls, FMX.Edit, FMX.Objects, u_database,
   u_login, FMX.Layouts, IdBaseComponent, IdComponent, IdTCPConnection,
@@ -155,6 +155,7 @@ end;
 procedure TFrmRegister.FormCreate(Sender: TObject);
 begin
   Self.DataJson := TJSONObject.Create();
+
 {$IFDEF MSWINDOWS}
   Path := 'ellite.key';
   RootPath := '';
@@ -206,11 +207,14 @@ end;
 procedure TFrmRegister.WriteFile;
 var
   F: TextFile;
+  decrypted, encrypted: string;
 begin
   AssignFile(F, Path);
   try
     Rewrite(F);
-    Writeln(F, Self.DataJson.ToString);
+    decrypted := Self.DataJson.ToString;
+    encrypted := Crypt.EncryptStr(decrypted);
+    Writeln(F, encrypted);
   finally
     CloseFile(F);
     IsRegistered := True;
@@ -223,8 +227,10 @@ var
   json_object: TJSONObject;
   data_valida, logo_path: string;
   logo: TFileStream;
+  resposta : IAsyncResult;
 begin
   DM.request.AddBody(JSON);
+  //resposta := BeginInvoke(DM.request.Execute);
   DM.request.Execute;
   if DM.response.StatusCode = 200 then
   begin
@@ -296,7 +302,7 @@ end;
 procedure TFrmRegister.ReadFile;
 var
   F: TextFile;
-  file_string: string;
+  decrypted, encrypted: string;
   file_value: TJSONObject;
 begin
   AssignFile(F, Path);
@@ -304,9 +310,10 @@ begin
     Reset(F);
     while not Eof(F) do
     begin
-      ReadLn(F, file_string);
+      ReadLn(F, encrypted);
+      decrypted := Crypt.DecryptStr(encrypted);
       file_value := TJSONObject.Create();
-      file_value := TJSONObject.ParseJSONValue(file_string) as TJSONObject;
+      file_value := TJSONObject.ParseJSONValue(decrypted) as TJSONObject;
       Self.Company := file_value.GetValue('company').Value;
       Self.ValidDate := StrToDate(file_value.GetValue('valid_date').Value);
       Self.Host := file_value.GetValue('server_ip').Value;
