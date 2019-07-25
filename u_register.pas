@@ -63,7 +63,7 @@ implementation
 {$IFDEF MSWINDOWS}
 
 uses
-  ComObj, ActiveX;
+  ComObj, ActiveX, Env;
 {$ENDIF}
 {$IFDEF IOS}
 
@@ -243,7 +243,7 @@ begin
     logo_path := System.IOUtils.TPath.Combine(RootPath, 'logo.png');
     logo := TFileStream.Create(logo_path, fmCreate);
     try
-      IdHTTP1.get('https://ellitedev.herokuapp.com/' +
+      IdHTTP1.get(BASE_URL +
         json_object.GetValue('company_logo').Value, logo);
       logo.Free;
       FrmLogin.img_logo.Bitmap.LoadFromFile(logo_path);

@@ -11,14 +11,15 @@ uses
 
 type
   TDM = class(TDataModule)
-    client: TRESTClient;
+    Client: TRESTClient;
     request: TRESTRequest;
-    response: TRESTResponse;
+    Response: TRESTResponse;
     dataadapter: TRESTResponseDataSetAdapter;
     memtable: TFDMemTable;
     RESTClient1: TRESTClient;
     RESTRequest1: TRESTRequest;
     RESTResponse1: TRESTResponse;
+    procedure DataModuleCreate(Sender: TObject);
   private
     { Private declarations }
   public
@@ -32,6 +33,13 @@ implementation
 
 {%CLASSGROUP 'FMX.Controls.TControl'}
 
+uses Env;
+
 {$R *.dfm}
+
+procedure TDM.DataModuleCreate(Sender: TObject);
+begin
+  Client.BaseURL := BASE_URL;
+end;
 
 end.

@@ -100,8 +100,9 @@ begin
   if dm.response.StatusCode = 200 then
   begin
     JSON := dm.response.JsonValue as TJSONObject;
-    dm.request.Params.AddItem('Authorization', 'Token ' + JSON.GetValue('token')
-      .Value, TRESTRequestParameterKind.pkHTTPHEADER, [poDoNotEncode]);;
+    dm.request.Params.AddHeader('Authorization', 'Token ' + JSON.GetValue('token')
+      .Value);
+    dm.request.Params.ParameterByName('Authorization').Options := [poDoNotEncode];
     FrmMain.User := JSON.GetValue('full_name').Value;
     FrmMain.Show;
     FrmLogin.Hide;

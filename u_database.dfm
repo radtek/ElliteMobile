@@ -1,9 +1,9 @@
 object DM: TDM
   OldCreateOrder = False
+  OnCreate = DataModuleCreate
   Height = 449
   Width = 639
   object client: TRESTClient
-    BaseURL = 'https://ellitedev.herokuapp.com/api/v1/'
     Params = <>
     Left = 48
     Top = 64
