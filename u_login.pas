@@ -7,18 +7,17 @@ uses
   System.Variants, System.JSON, REST.Types, IOUtils, REST.JSON,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs,
   FMX.Controls.Presentation, FMX.StdCtrls, FMX.Edit, FMX.Objects, FMX.Layouts,
-  u_database;
+  u_database, FMX.ListView.Types, FMX.ListView.Appearances,
+  FMX.ListView.Adapters.Base, FMX.ListView, System.ImageList, FMX.ImgList;
 
 type
   TFrmLogin = class(TForm)
-    BtnExit: TButton;
     BtnGetImei: TButton;
     BtnGuid: TButton;
     TxtUser: TEdit;
     TxtPassword: TEdit;
     LblUser: TLabel;
     LblPassword: TLabel;
-    BtnLogin: TButton;
     img_logo: TImage;
     LayoutClient: TLayout;
     LayoutHeader: TLayout;
@@ -26,6 +25,9 @@ type
     LayoutForm: TLayout;
     LayoutBtn: TLayout;
     LblRegister: TLabel;
+    BtnExit: TSpeedButton;
+    BtnLogin: TSpeedButton;
+    ImageListButton: TImageList;
     procedure BtnExitClick(Sender: TObject);
     procedure BtnGetImeiClick(Sender: TObject);
     procedure BtnGuidClick(Sender: TObject);
@@ -33,6 +35,11 @@ type
     procedure FormPaint(Sender: TObject; Canvas: TCanvas; const ARect: TRectF);
     procedure BtnLoginClick(Sender: TObject);
     procedure TxtUserExit(Sender: TObject);
+    procedure TxtPasswordKeyUp(Sender: TObject; var Key: Word;
+      var KeyChar: Char; Shift: TShiftState);
+    procedure TxtUserKeyUp(Sender: TObject; var Key: Word; var KeyChar: Char;
+      Shift: TShiftState);
+    procedure FormActivate(Sender: TObject);
   private
     { Private declarations }
     FIMEI, FGUID, FCompany, FCompanyLogo: String;
@@ -77,9 +84,26 @@ begin
   TxtPassword.Text := '';
 end;
 
+procedure TFrmLogin.TxtPasswordKeyUp(Sender: TObject; var Key: Word;
+  var KeyChar: Char; Shift: TShiftState);
+begin
+  if ((Key = VKRETURN) or (Key = VKTab)) and (TxtPassword.Text <> '') then
+    BtnLoginClick(Sender);
+end;
+
 procedure TFrmLogin.TxtUserExit(Sender: TObject);
 begin
   TxtUser.Text := LowerCase(TxtUser.Text);
+  TxtPassword.SetFocus;
+end;
+
+procedure TFrmLogin.TxtUserKeyUp(Sender: TObject; var Key: Word;
+  var KeyChar: Char; Shift: TShiftState);
+begin
+  if ((Key = VKRETURN) or (Key = VKTAB)) and (TxtUser.Text <> '') then
+  begin
+    TxtPassword.SetFocus;
+  end;
 end;
 
 procedure TFrmLogin.BtnLoginClick(Sender: TObject);
@@ -93,6 +117,8 @@ begin
   JSON.AddPair(TJSONPair.Create('password', TxtPassword.Text));
   dm.request.ClearBody;
   dm.request.Params.Clear;
+
+  // ShowMessage(DM.Client.BaseURL);
   dm.request.Resource := 'login/';
   dm.request.Method := rmPOST;
   dm.request.AddBody(JSON);
@@ -100,21 +126,19 @@ begin
   if dm.response.StatusCode = 200 then
   begin
     JSON := dm.response.JsonValue as TJSONObject;
-    dm.request.Params.AddHeader('Authorization', 'Token ' + JSON.GetValue('token')
-      .Value);
-    dm.request.Params.ParameterByName('Authorization').Options := [poDoNotEncode];
+    dm.request.Params.AddHeader('Authorization',
+      'Token ' + JSON.GetValue('token').Value);
+    dm.request.Params.ParameterByName('Authorization').Options :=
+      [poDoNotEncode];
     FrmMain.User := JSON.GetValue('full_name').Value;
     FrmMain.Show;
     FrmLogin.Hide;
-    dm.request.Method := rmGET;
-    dm.request.Resource := 'person/1/';
-    file_string := TFile.ReadAllText('data.json');
-    person := TJSONObject.Create();
-    person := TJSONObject.ParseJSONValue(file_string) as TJSONObject;
-    dm.request.AddBody(person.ToString);
-    dm.request.Execute;
-    ShowMessage(dm.response.JSONText);
   end;
+end;
+
+procedure TFrmLogin.FormActivate(Sender: TObject);
+begin
+  TxtUser.SetFocus;
 end;
 
 procedure TFrmLogin.FormClose(Sender: TObject; var Action: TCloseAction);
